@@ -101,6 +101,8 @@ class Artbot:
         elif build_negative_prompt=="YES":
             full_prompt = "!@>system: Build a list of expressions that shouldn't be in the an artwork built from the user prompt. example (((ugly))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), ((extra arms)), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes)).\nUse the user prompt as a base to determine this list and answer only with the list.\n!@>user:" + prompt + "!@>artbot:"
             neg_prompt = generate_text(lollms_host,full_prompt)
+        else:
+            neg_prompt = ""
         tokens = clip.tokenize(neg_prompt)
         negative_cond, negative_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
         print(f"Negative conditionning: {worked}")
