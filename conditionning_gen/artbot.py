@@ -5,6 +5,7 @@ if not PackageManager.check_package_installed("lollms_client"):
 import comfy.model_management
 from lollms_client import generate_text
 import torch
+from torchvision.transforms import Compose, Resize, CenterCrop
 
 MAX_RESOLUTION=16384
 
@@ -105,7 +106,42 @@ class Artbot:
         print(f"Negative conditionning: {worked}")
 
         if input_image is not None:
-            latent = vae.encode(input_image[:,:,:,:3])
+            # First, determine how to resize the image without changing its aspect ratio
+            def resize_keep_aspect_ratio(img, target_width, target_height):
+                # Convert from HWC to CHW format which is expected by torchvision transforms
+                img = img.permute(2, 0, 1)
+                # Get the original dimensions
+                orig_height, orig_width = img.shape[1], img.shape[2]
+                # Calculate the scaling factors for both dimensions
+                scale_width = target_width / orig_width
+                scale_height = target_height / orig_height
+                # Choose the larger scaling factor to ensure the image covers the target dimensions
+                scale_factor = min(scale_width, scale_height)
+                # Calculate the resized dimensions
+                new_width = int(orig_width * scale_factor)
+                new_height = int(orig_height * scale_factor)
+                # Resize the image
+                resize_transform = Resize((new_height, new_width))
+                resized_img = resize_transform(img)
+
+                return resized_img
+            # Apply the transformations to each image in the batch
+            processed_images = []
+            for i in range(input_image.shape[0]):
+                img = input_image[i,...]
+                resized_img = resize_keep_aspect_ratio(img, width, height)
+                # Now, center crop to the target dimensions
+                crop_transform = CenterCrop((height, width))
+                cropped_img = crop_transform(resized_img)
+                # Convert from HWC to CHW format which is expected by torchvision transforms
+                cropped_img = cropped_img.permute(1, 2, 0)
+                
+                processed_images.append(cropped_img)
+
+            # Stack processed images back into a batch
+            processed_batch = torch.stack(processed_images)
+            # Encode the processed batch using VAE
+            latent = vae.encode(processed_batch)
         else:
             latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=self.device)
 
