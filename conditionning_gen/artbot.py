@@ -63,7 +63,7 @@ class Artbot:
                     "multiline": False, #True if you want the field to look like the one on the ClipTextEncode node
                     "default": "http://localhost:9600"
                 }),
-                "build_negative_prompt":(["YES","NO"],),
+                "build_negative_prompt":(["YES","NO","USE_DEFAULT"],),
                 "width": ("INT", {"default": 1024, "min": 16, "max": MAX_RESOLUTION, "step": 8}),
                 "height": ("INT", {"default": 1024, "min": 16, "max": MAX_RESOLUTION, "step": 8}),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max": 4096}),
@@ -71,6 +71,10 @@ class Artbot:
                     "multiline": True, #True if you want the field to look like the one on the ClipTextEncode node
                     "default": "Hello World!"
                 }),
+            },
+            "optional": {
+                "input_image":("IMAGE",), 
+                "vae":("VAE",),
             },
         }
 
@@ -83,21 +87,27 @@ class Artbot:
 
     CATEGORY = "Lollms/Artbot"
 
-    def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt):
+    def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt, input_image=None, vae=None):
         #do some processing on the image, in this Artbot I just invert it
-        full_prompt = "!@>system: Act as Artbot, Generate captivating art via succinctly combining tags or art styles, e.g. 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors.' This concise prompt sparks curiosity and enriches user's artistic experience. Use the user prompt as seed to build your artwork description.\n!@>user:" + prompt + "\n!@>artbot:"
+        full_prompt = "!@>system: Act as Artbot, Use the user prompt as a subject then build an image generation prompt for a captivating art via succinctly combining tags or art styles, e.g. 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors.' This concise prompt sparks curiosity and enriches user's artistic experience.\n!@>user:" + prompt + "\n!@>artbot:"
         worked = generate_text(lollms_host,full_prompt)
         tokens = clip.tokenize(worked)
         positive_cond, positive_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
         print(f"Positive conditionning: {worked}")
 
-        full_prompt = "!@>system: Gracefully assume the role of ArtBot, the inventive art prompt generation AI. Leveraging prior discussion insights, craft an eloquent image generation antiprompt that specifies undesired elements without making direct references. Ensure meticulous attention to detail in both style and description, while delicately weaving together an engaging and imaginative list of words. Exclude complex textures, jarring color palettes, and disjointed compositions to generate an antiprompt that fosters an inspiring visual masterpiece, steering clear of unsuitable creative elements and paving the way for an enriched artistic experience.\n!@>user:" + prompt + "!@>artbot:"
-        worked = "watermark, text" if build_negative_prompt=="NO" else generate_text(lollms_host,full_prompt)
-        tokens = clip.tokenize(worked)
+        if build_negative_prompt=="USE_DEFAULT":
+            neg_prompt = "(((ugly))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), ((extra arms)), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes))"
+        elif build_negative_prompt=="YES":
+            full_prompt = "!@>system: Build a list of expressions that shouldn't be in the an artwork built from the user prompt. example (((ugly))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), ((extra arms)), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes)).\nUse the user prompt as a base to determine this list and answer only with the list.\n!@>user:" + prompt + "!@>artbot:"
+            neg_prompt = generate_text(lollms_host,full_prompt)
+        tokens = clip.tokenize(neg_prompt)
         negative_cond, negative_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
         print(f"Negative conditionning: {worked}")
 
-        latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=self.device)
+        if input_image is not None:
+            latent = vae.encode(input_image[:,:,:,:3])
+        else:
+            latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=self.device)
 
         return ([[positive_cond, {"pooled_output": positive_pooled}]], 
                 [[negative_cond, {"pooled_output": negative_pooled}]],
