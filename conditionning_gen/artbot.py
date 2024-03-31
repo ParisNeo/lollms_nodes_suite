@@ -85,14 +85,14 @@ class Artbot:
 
     def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt):
         #do some processing on the image, in this Artbot I just invert it
-        full_prompt = "!@>system: Elegantly embody the role of ArtBot, an innovative art prompt generation AI. Utilizing prior discussion insights, creatively devise an evocative image generation prompt that captures both style and description details. Ensure precision in your delivery while incorporating elements that spark curiosity and engage the recipient's imagination. Exquisitely blend intricate patterns, vibrant colors, and harmonious compositions to generate an inspiring visual masterpiece, stimulating the user's artistic senses and fostering an enriched creative experience.\n!@>user:" + prompt + "!@>artbot:"
+        full_prompt = "!@>system: Act as Artbot, Generate captivating art via succinctly combining tags or art styles, e.g. 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors.' This concise prompt sparks curiosity and enriches user's artistic experience. Use the user prompt as seed to build your artwork description.\n!@>user:" + prompt + "\n!@>artbot:"
         worked = generate_text(lollms_host,full_prompt)
         tokens = clip.tokenize(worked)
         positive_cond, positive_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
         print(f"Positive conditionning: {worked}")
 
         full_prompt = "!@>system: Gracefully assume the role of ArtBot, the inventive art prompt generation AI. Leveraging prior discussion insights, craft an eloquent image generation antiprompt that specifies undesired elements without making direct references. Ensure meticulous attention to detail in both style and description, while delicately weaving together an engaging and imaginative list of words. Exclude complex textures, jarring color palettes, and disjointed compositions to generate an antiprompt that fosters an inspiring visual masterpiece, steering clear of unsuitable creative elements and paving the way for an enriched artistic experience.\n!@>user:" + prompt + "!@>artbot:"
-        worked = "" if build_negative_prompt=="NO" else generate_text(lollms_host,full_prompt)
+        worked = "watermark, text" if build_negative_prompt=="NO" else generate_text(lollms_host,full_prompt)
         tokens = clip.tokenize(worked)
         negative_cond, negative_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
         print(f"Negative conditionning: {worked}")
@@ -118,13 +118,3 @@ class Artbot:
 # Set the web directory, any .js file in that directory will be loaded by the frontend as a frontend extension
 # WEB_DIRECTORY = "./somejs"
 
-# A dictionary that contains all nodes you want to export with their names
-# NOTE: names should be globally unique
-NODE_CLASS_MAPPINGS = {
-    "Artbot": Artbot
-}
-
-# A dictionary that contains the friendly/humanly readable titles for the nodes
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "Artbot": "Artbot Node"
-}
