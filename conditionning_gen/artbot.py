@@ -90,11 +90,11 @@ class Artbot:
 
     def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt, input_image=None, vae=None):
         #do some processing on the image, in this Artbot I just invert it
-        full_prompt = "!@>system: Act as Artbot, Use the user prompt as a subject then build an image generation prompt for a captivating art via succinctly combining tags or art styles, e.g. 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors.' This concise prompt sparks curiosity and enriches user's artistic experience.\n!@>user:" + prompt + "\n!@>artbot:"
-        worked = generate_text(lollms_host,full_prompt)
-        tokens = clip.tokenize(worked)
+        full_prompt = "!@>system: Act as Artbot, Use the user prompt as a subject then build an image generation prompt for a captivating art.Start by a very simple description of the artwork, then follow up with tags or art styles, here are some examples of tags 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors, highres, 8k, cyberpunk, steampunk, Best quality, UHD, HDR, contemporary impressionism etc', you can also give an information about the camera and the shot parameters if needed. Use as much tags as you need. Only use tags that serve the project of artwork. If needed evoke the name of an artist  This concise prompt sparks curiosity and enriches user's artistic experience.\n!@>user:" + prompt + "\n!@>artbot:"
+        positive_prompt = generate_text(lollms_host,full_prompt)
+        tokens = clip.tokenize(positive_prompt)
         positive_cond, positive_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
-        print(f"Positive conditionning: {worked}")
+        print(f"Positive conditionning: {positive_cond}")
 
         if build_negative_prompt=="USE_DEFAULT":
             neg_prompt = "(((ugly))), (((duplicate))), ((morbid)), ((mutilated)), out of frame, extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), ((extra arms)), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))), ((watermark)), ((robot eyes))"
@@ -105,7 +105,7 @@ class Artbot:
             neg_prompt = ""
         tokens = clip.tokenize(neg_prompt)
         negative_cond, negative_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
-        print(f"Negative conditionning: {worked}")
+        print(f"Negative conditionning: {neg_prompt}")
 
         if input_image is not None:
             # First, determine how to resize the image without changing its aspect ratio
@@ -141,7 +141,7 @@ class Artbot:
                 processed_images.append(cropped_img)
 
             # Stack processed images back into a batch
-            processed_batch = torch.stack(processed_images)
+            processed_batch = torch.stack(processed_images*batch_size)
             # Encode the processed batch using VAE
             latent = vae.encode(processed_batch)
         else:
