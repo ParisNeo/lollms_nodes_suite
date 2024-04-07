@@ -90,7 +90,15 @@ class Artbot:
 
     def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt, input_image=None, vae=None):
         #do some processing on the image, in this Artbot I just invert it
-        full_prompt = "!@>system: Act as Artbot, Use the user prompt as a subject then build an image generation prompt for a captivating art.Start by a very simple description of the artwork, then follow up with tags or art styles, here are some examples of tags 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors, highres, 8k, cyberpunk, steampunk, Best quality, UHD, HDR, contemporary impressionism etc', you can also give an information about the camera and the shot parameters if needed. Use as much tags as you need. Only use tags that serve the project of artwork. If needed evoke the name of an artist  This concise prompt sparks curiosity and enriches user's artistic experience.\n!@>user:" + prompt + "\n!@>artbot:"
+        full_prompt = "\n".join([
+            "!@>system: Act as Artbot, Use the user prompt as a subject then build an image generation prompt for a captivating art.",
+            "Start by a very simple description of the artwork, then follow up with tags or art styles, here are some examples of tags 'whimsical pop-surrealist style, autumn forest, magical fairies, vibrant colors, highres, 8k, cyberpunk, steampunk, Best quality, UHD, HDR, contemporary impressionism etc', you can also give an information about the camera and the shot parameters if needed.",
+            "Use as much tags as you need. Only use tags that serve the project of artwork. If needed evoke the name of an artist  This concise prompt sparks curiosity and enriches user's artistic experience.",
+            "If the user prompt is in another language than english, use it as a guideline and write an english prompt.",
+            "!@>user:",
+            prompt,
+            "!@>artbot:"
+        ])
         positive_prompt = generate_text(lollms_host,full_prompt)
         tokens = clip.tokenize(positive_prompt)
         positive_cond, positive_pooled = clip.encode_from_tokens(tokens, return_pooled=True)
