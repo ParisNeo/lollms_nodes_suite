@@ -3,7 +3,7 @@ if not PackageManager.check_package_installed("lollms_client"):
     PackageManager.install_package("lollms_client")
 
 import comfy.model_management
-from lollms_client import generate_text
+from lollms_client import LollmsClient
 import torch
 
 MAX_RESOLUTION=16384
@@ -39,6 +39,7 @@ class Lollms_Text_Gen:
     """
     def __init__(self):
         self.device = comfy.model_management.intermediate_device()
+        self.lollms = LollmsClient()
     
     @classmethod
     def INPUT_TYPES(s):
@@ -82,7 +83,7 @@ class Lollms_Text_Gen:
     def build_prompt(self, clip, lollms_host, build_negative_prompt, width, height, batch_size, prompt):
         #do some processing on the image, in this Lollms_Text_Gen I just invert it
         full_prompt = "!@>system: You are a helpful AI agent. Help the user perform his tasks.\n!@>user:" + prompt + "!@>Lollms_Text_Gen:"
-        answer = generate_text(lollms_host,full_prompt)
+        answer = self.lollms.generate_text(lollms_host,full_prompt)
         return (answer,)
 
     """

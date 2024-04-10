@@ -3,8 +3,6 @@ if not PackageManager.check_package_installed("lollms_client"):
     PackageManager.install_package("lollms_client")
 
 import comfy.model_management
-from lollms_client import generate_text
-import torch
 
 MAX_RESOLUTION=16384
 
