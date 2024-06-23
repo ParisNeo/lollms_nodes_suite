@@ -1,0 +1,15 @@
+[project]
+name = "lollms_nodes_suite"
+description = "lollms_nodes_suite is a set of nodes for comfyui that harnesses the power of lollms, a state-of-the-art AI text generation tool, to improve the quality of image generation."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["lollms-client"]
+
+[project.urls]
+Repository = "https://github.com/ParisNeo/lollms_nodes_suite"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "lollms_nodes_suite"
+Icon = ""
